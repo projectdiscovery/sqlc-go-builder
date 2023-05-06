@@ -4,6 +4,13 @@
 
 It implements a parser using [vitess-go-sqlparser](https://vitess.io/docs/contributing/contributing-to-ast-parser/) to parse and rewrite Complex MySQL queries on the fly using their `AST` and `Rewrite` functionality provided by the `sqlparser` package.
 
+## Features
+
+1. Allows `Where`, `Order`, `In`, `Offset`, `Limit` dynamically.
+2. Supports complex `SELECT` queries.
+3. Safe from SQLi by using Parameterized Arguments for everything dynamic.
+4. Sanitizes code by using Vitess SQL parser.
+
 ## Example
 
 ```go
