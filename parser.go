@@ -185,6 +185,11 @@ func (b *Builder) modifySelectStatement(stmt *sqlparser.Select, previousIndex in
 				Left:  v,
 				Right: comparison,
 			}
+		case *sqlparser.OrExpr:
+			stmt.Where.Expr = &sqlparser.AndExpr{
+				Left:  v,
+				Right: comparison,
+			}
 		default:
 			log.Printf("[sqlc] [err] unsupported where expression: %T", stmt.Where.Expr)
 		}
