@@ -27,7 +27,7 @@ func main() {
 		In("id", 1, 2, 3).
 		Where("name = ?", "John").
 		Where("age > ?", 18).
-        Group("name, age").
+        	Group("name, age").
 		Order("name ASC, age DESC").
 		Offset(10).
 		Limit(5)
