@@ -74,7 +74,11 @@ func (b *Builder) In(column string, args ...interface{}) *Builder {
 		placeholders[i] = "?"
 	}
 
-	colIdent := sqlparser.NewColName(column)
+	colIdent, err := getTableRowIdentifier(column)
+	if err != nil {
+		fmt.Printf("could not get table row identifier %s: %s", column, err)
+		return b
+	}
 	quotedColumn := sqlparser.String(colIdent)
 
 	query := fmt.Sprintf("%s IN (%s)", quotedColumn, strings.Join(placeholders, ","))
@@ -87,7 +91,7 @@ func (b *Builder) Order(cols string) *Builder {
 	columns, err := extractOrderBy(cols)
 	if err != nil {
 		fmt.Printf("could not extract order by %s: %s", cols, err)
-		return nil
+		return b
 	}
 	b.order = columns
 	return b
@@ -105,7 +109,7 @@ func (b *Builder) Group(cols string) *Builder {
 		colIdent, err := getTableRowIdentifier(value)
 		if err != nil {
 			fmt.Printf("could not get table row identifier %s: %s", cols, err)
-			return nil
+			return b
 		}
 		groups = append(groups, colIdent)
 	}
