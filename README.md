@@ -36,6 +36,12 @@ func main() {
 // args= [1 2 3 John 18]
 ```
 
+### TODO
+
+- [ ] Better error handling
+- [ ] More tests
+
+
 ### Credits
 
 1. https://github.com/yiplee/sqlc - Original inspiration for this library. The concepts have been extended to support AST rewrite instead of string formatting and things have been made safer (No SQLi).
