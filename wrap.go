@@ -3,7 +3,7 @@ package sqlc
 import (
 	"context"
 	"database/sql"
-	"log"
+	"fmt"
 
 	"github.com/pkg/errors"
 )
@@ -25,7 +25,7 @@ type wrappedDB struct {
 	DBTX
 }
 
-func (w wrappedDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+func (w *wrappedDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
 	var err error
 	if b, ok := BuilderFrom(ctx); ok {
 		query, args, err = b.Build(query, args...)
@@ -36,7 +36,11 @@ func (w wrappedDB) ExecContext(ctx context.Context, query string, args ...interf
 	return w.DBTX.ExecContext(ctx, query, args...)
 }
 
-func (w wrappedDB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
+func (w *wrappedDB) PrepareContext(ctx context.Context, query string) (*sql.Stmt, error) {
+	return w.DBTX.PrepareContext(ctx, query)
+}
+
+func (w *wrappedDB) QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error) {
 	var err error
 	if b, ok := BuilderFrom(ctx); ok {
 		query, args, err = b.Build(query, args...)
@@ -47,7 +51,7 @@ func (w wrappedDB) QueryContext(ctx context.Context, query string, args ...inter
 	return w.DBTX.QueryContext(ctx, query, args...)
 }
 
-func (w wrappedDB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (w *wrappedDB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
 	var err error
 	if b, ok := BuilderFrom(ctx); ok {
 		if queryNew, argsNew, err := b.Build(query, args...); err == nil {
@@ -56,7 +60,7 @@ func (w wrappedDB) QueryRowContext(ctx context.Context, query string, args ...in
 		}
 	}
 	if err != nil {
-		log.Printf("could not build query: %s", err)
+		fmt.Printf("could not build query: %s", err)
 	}
 	return w.DBTX.QueryRowContext(ctx, query, args...)
 }
