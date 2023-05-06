@@ -1,7 +1,6 @@
 package sqlc
 
 import (
-	"fmt"
 	"log"
 	"regexp"
 	"strconv"
@@ -12,97 +11,6 @@ import (
 )
 
 var defaultRowCount = 100
-
-type (
-	// Builder is a SQL query builder.
-	//
-	// It supports dynamic WHERE conditions, ORDER BY, LIMIT, and OFFSET.
-	// For dynamic WHERE and ORDER BY clauses, only the parent table rows can be used.
-	// It uses vitess sqlparser to parse the query and rewrite it.
-	Builder struct {
-		filters       []filter
-		order         *sqlparser.OrderBy
-		offset, limit *int
-
-		RowCount int
-	}
-
-	filter struct {
-		expression   string
-		args         []interface{}
-		placeholders []string
-	}
-)
-
-// New creates a new Builder.
-func New() *Builder {
-	return &Builder{}
-}
-
-// Where set conditions of where in SELECT
-// Where("user = ?","tom")
-// Where("a = ? OR b = ?",1,2)
-//
-// Requires 3 arguments, first is key, second is operator
-// and third is a argument to be replaced with a placeholder.
-//
-// Requires spaces between conditions to work.
-func (b *Builder) Where(query string, args ...interface{}) *Builder {
-	b.filters = append(b.filters, filter{
-		expression: query,
-		args:       args,
-	})
-
-	return b
-}
-
-func (b *Builder) whereWithPlaceholders(query string, args []interface{}, placeholders []string) *Builder {
-	b.filters = append(b.filters, filter{
-		expression:   query,
-		args:         args,
-		placeholders: placeholders,
-	})
-
-	return b
-}
-
-// In is an equivalent of Where("column IN (?,?,?)", args...).
-// In("id", 1, 2, 3)
-func (b *Builder) In(column string, args ...interface{}) *Builder {
-	placeholders := make([]string, len(args))
-	for i := range args {
-		placeholders[i] = "?"
-	}
-
-	colIdent := sqlparser.NewColName(column)
-	quotedColumn := sqlparser.String(colIdent)
-
-	query := fmt.Sprintf("%s IN (%s)", quotedColumn, strings.Join(placeholders, ","))
-	return b.whereWithPlaceholders(query, args, placeholders)
-}
-
-// Order sets columns of ORDER BY in SELECT.
-// Order("name, age DESC")
-func (b *Builder) Order(cols string) *Builder {
-	columns, err := extractOrderBy(cols)
-	if err != nil {
-		return nil
-	}
-	b.order = columns
-	return b
-}
-
-// Offset sets the offset in SELECT.
-func (b *Builder) Offset(x int) *Builder {
-	b.offset = &x
-	return b
-}
-
-// Limit sets the limit in SELECT.
-func (b *Builder) Limit(x int) *Builder {
-	b.limit = &x
-	return b
-}
 
 // replaceVitessRegex is a regex to replace vitess placeholders with a single
 // question mark.
