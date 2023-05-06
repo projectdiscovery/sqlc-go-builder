@@ -13,6 +13,8 @@ It implements a parser using [vitess-go-sqlparser](https://vitess.io/docs/contri
 
 ## Example
 
+### Using as standalone
+
 ```go
 package main
 
@@ -42,6 +44,46 @@ func main() {
 // Output:
 // query= select id from user_items where id in (?, ?, ?) and `name` = ? and age > ? group by `name`, age order by `name` asc, age desc limit 10, 5
 // args= [1 2 3 John 18]
+```
+
+### Wrapping with SQLC
+
+```go
+package background
+
+import (
+	"context"
+	"fmt"
+	"testing"
+
+	v2 "github.com/test-repo/pkg/db/v2"
+	"github.com/test-repo/pkg/db/v2/dbsql"
+	sqlc "github.com/projectdiscovery/sqlc-go-builder"
+)
+
+func TestPaginationDynamic(t *testing.T) {
+	db, err := v2.New("<db-url>")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	querier := dbsql.New(sqlc.Wrap(db.Pool))
+	//querier := db.Queries()
+	data, err := querier.GetData(
+		sqlc.Build(context.Background(), func(builder *sqlc.Builder) {
+			builder.Limit(10)
+		}),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, item := range data {
+		item := item
+		fmt.Printf("%v\n", item)
+	}
+}
 ```
 
 ### TODO
