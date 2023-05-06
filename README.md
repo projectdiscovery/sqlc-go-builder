@@ -6,7 +6,7 @@ It implements a parser using [vitess-go-sqlparser](https://vitess.io/docs/contri
 
 ## Features
 
-1. Allows `Where`, `Order`, `In`, `Offset`, `Limit` dynamically.
+1. Allows `Where`, `Order`, `In`, `Offset`, `Limit`, `Group` dynamically.
 2. Supports complex `SELECT` queries.
 3. Safe from SQLi by using Parameterized Arguments for everything dynamic.
 4. Sanitizes code by using Vitess SQL parser.
@@ -27,6 +27,7 @@ func main() {
 		In("id", 1, 2, 3).
 		Where("name = ?", "John").
 		Where("age > ?", 18).
+        Group("name, age").
 		Order("name ASC, age DESC").
 		Offset(10).
 		Limit(5)
@@ -39,7 +40,7 @@ func main() {
 }
 
 // Output:
-// query= select id from user_items where id in (?, ?, ?) and `name` = ? and age > ? order by `name` asc, age desc limit 10, 5
+// query= select id from user_items where id in (?, ?, ?) and `name` = ? and age > ? group by `name`, age order by `name` asc, age desc limit 10, 5
 // args= [1 2 3 John 18]
 ```
 

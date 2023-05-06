@@ -17,6 +17,7 @@ type (
 		filters       []filter
 		order         *sqlparser.OrderBy
 		offset, limit *int
+		group         *sqlparser.GroupBy
 
 		RowCount int
 	}
@@ -85,9 +86,30 @@ func (b *Builder) In(column string, args ...interface{}) *Builder {
 func (b *Builder) Order(cols string) *Builder {
 	columns, err := extractOrderBy(cols)
 	if err != nil {
+		fmt.Printf("could not extract order by %s: %s", cols, err)
 		return nil
 	}
 	b.order = columns
+	return b
+}
+
+// Group sets columns of GROUP BY in SELECT.
+// Group("name")
+func (b *Builder) Group(cols string) *Builder {
+	groups := sqlparser.GroupBy{}
+	parts := strings.Split(cols, ",")
+	for _, item := range parts {
+		item := item
+
+		value := strings.Trim(item, " ")
+		colIdent, err := getTableRowIdentifier(value)
+		if err != nil {
+			fmt.Printf("could not get table row identifier %s: %s", cols, err)
+			return nil
+		}
+		groups = append(groups, colIdent)
+	}
+	b.group = &groups
 	return b
 }
 

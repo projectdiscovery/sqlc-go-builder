@@ -1,7 +1,6 @@
 package sqlc
 
 import (
-	"log"
 	"regexp"
 	"strconv"
 	"strings"
@@ -26,13 +25,21 @@ func (b *Builder) Build(query string, args ...interface{}) (string, []interface{
 	var finalArgs []interface{}
 	finalArgs = append(finalArgs, args...)
 
+	var finalError error
 	post := func(cursor *sqlparser.Cursor) bool {
 		switch n := cursor.Node().(type) {
 		case *sqlparser.Select:
-			//	spew.Dump(n)
-			finalArgs = append(finalArgs, b.modifySelectStatement(n, len(args))...)
+			args, err := b.modifySelectStatement(n, len(args))
+			if err != nil {
+				finalError = err
+				return false
+			}
+			finalArgs = append(finalArgs, args...)
 		}
 		return true
+	}
+	if finalError != nil {
+		return "", nil, errors.Wrap(finalError, "could not build query")
 	}
 	s := sqlparser.Rewrite(stmt, nil, post)
 	data := sqlparser.String(s)
@@ -40,7 +47,7 @@ func (b *Builder) Build(query string, args ...interface{}) (string, []interface{
 	return replaced, finalArgs, nil
 }
 
-func (b *Builder) modifySelectStatement(stmt *sqlparser.Select, previousIndex int) []interface{} {
+func (b *Builder) modifySelectStatement(stmt *sqlparser.Select, previousIndex int) ([]interface{}, error) {
 	if b.order != nil {
 		stmt.OrderBy = *b.order
 	}
@@ -68,14 +75,19 @@ func (b *Builder) modifySelectStatement(stmt *sqlparser.Select, previousIndex in
 			}
 		}
 	}
+	if b.group != nil {
+		stmt.GroupBy = *b.group
+	}
+	var filterErr error
 	var args []interface{}
+mainLoop:
 	for i, filter := range b.filters {
 		filter := filter
 
 		comparison, err := extractWhereStatement(filter.expression, i+1+previousIndex, filter.placeholders)
 		if err != nil {
-			log.Printf("[err] could not extract where statement: %s", err)
-			continue
+			filterErr = errors.Errorf("could not extract where statement: %s", err)
+			break
 		}
 		if stmt.Where == nil {
 			stmt.Where = &sqlparser.Where{Expr: comparison}
@@ -99,11 +111,15 @@ func (b *Builder) modifySelectStatement(stmt *sqlparser.Select, previousIndex in
 				Right: comparison,
 			}
 		default:
-			log.Printf("[sqlc] [err] unsupported where expression: %T", stmt.Where.Expr)
+			filterErr = errors.Errorf("unsupported where expression: %T", stmt.Where.Expr)
+			break mainLoop
 		}
 		args = append(args, filter.args...)
 	}
-	return args
+	if filterErr != nil {
+		return nil, filterErr
+	}
+	return args, nil
 }
 
 // extractOrderBy parses the orderByStr and returns a sqlparser.OrderBy.
@@ -116,7 +132,7 @@ func extractOrderBy(orderByStr string) (*sqlparser.OrderBy, error) {
 		part = strings.TrimSpace(part)
 		parts := strings.SplitN(part, " ", 2)
 		if len(parts) == 0 {
-			continue
+			return nil, errors.Errorf("invalid order by statement: %v", part)
 		}
 		var direction string
 		column := parts[0]
@@ -133,9 +149,13 @@ func extractOrderBy(orderByStr string) (*sqlparser.OrderBy, error) {
 		} else if strings.HasSuffix(strings.ToLower(part), "asc") {
 			dir = sqlparser.AscOrder
 		}
+		leftStmt, err := getTableRowIdentifier(column)
+		if err != nil {
+			return nil, errors.Wrap(err, "could not get table row identifier")
+		}
 		// Create the OrderBy data structure
 		orderBy[i] = &sqlparser.Order{
-			Expr:      sqlparser.NewColName(column),
+			Expr:      leftStmt,
 			Direction: dir,
 		}
 	}
@@ -190,12 +210,43 @@ func extractWhereStatement(whereStr string, i int, placeholders []string) (*sqlp
 		right = valueTuples
 	}
 
+	// Check the key to see if we have a table name as well
+	leftStmt, err := getTableRowIdentifier(key)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not get table row identifier")
+	}
+
 	expr := &sqlparser.ComparisonExpr{
 		Operator: op,
-		Left:     sqlparser.NewColName(key),
+		Left:     leftStmt,
 		Right:    right,
 	}
 	return expr, nil
+}
+
+func getTableRowIdentifier(key string) (sqlparser.Expr, error) {
+	keyNames := strings.SplitN(key, ".", 2)
+	if len(keyNames) == 0 {
+		return nil, errors.New("invalid where statement key")
+	}
+	var tableName string
+	var rowName string
+	if len(keyNames) == 2 {
+		tableName = keyNames[0]
+		rowName = keyNames[1]
+	} else {
+		rowName = keyNames[0]
+	}
+
+	var leftStmt sqlparser.Expr
+	if tableName != "" {
+		leftStmt = sqlparser.NewColNameWithQualifier(rowName, sqlparser.TableName{
+			Name: sqlparser.NewIdentifierCS(tableName),
+		})
+	} else {
+		leftStmt = sqlparser.NewColName(key)
+	}
+	return leftStmt, nil
 }
 
 func buildPositionalArgument(i int) sqlparser.Argument {
