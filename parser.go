@@ -1,6 +1,7 @@
 package sqlc
 
 import (
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -42,9 +43,23 @@ func (b *Builder) Build(query string, args ...interface{}) (string, []interface{
 		return "", nil, errors.Wrap(finalError, "could not build query")
 	}
 	s := sqlparser.Rewrite(stmt, nil, post)
-	data := sqlparser.String(s)
+	data, parseErr := recoverableSqlparserToString(s)
+	if parseErr != nil {
+		return "", nil, errors.Wrap(parseErr, "could not build query")
+	}
 	replaced := replaceVitessRegex.ReplaceAllString(data, "?")
 	return replaced, finalArgs, nil
+}
+
+func recoverableSqlparserToString(s sqlparser.SQLNode) (string, error) {
+	var recoveredError error
+	defer func() {
+		if r := recover(); r != nil {
+			recoveredError = fmt.Errorf("recovered from panic: %v", r)
+		}
+	}()
+	result := sqlparser.String(s)
+	return result, recoveredError
 }
 
 func (b *Builder) modifySelectStatement(stmt *sqlparser.Select, previousIndex int) ([]interface{}, error) {
