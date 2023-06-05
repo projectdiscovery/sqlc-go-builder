@@ -217,7 +217,7 @@ func extractWhereStatement(whereStr string, i int, placeholders []string) (*sqlp
 	var right sqlparser.Expr
 	if value == "?" {
 		right = buildPositionalArgument(i)
-	} else if len(placeholders) > 0 {
+	} else {
 		var valueTuples sqlparser.ValTuple
 		for ni := range placeholders {
 			valueTuples = append(valueTuples, buildPositionalArgument(i+ni))
@@ -225,8 +225,15 @@ func extractWhereStatement(whereStr string, i int, placeholders []string) (*sqlp
 		right = valueTuples
 	}
 
+	var leftStmt sqlparser.Expr
+	var err error
 	// Check the key to see if we have a table name as well
-	leftStmt, err := getTableRowIdentifier(key)
+	if !strings.Contains(key, "(") {
+		leftStmt, err = getTableRowIdentifier(key)
+	} else {
+		leftStmt, err = sqlparser.ParseExpr(key)
+	}
+
 	if err != nil {
 		return nil, errors.Wrap(err, "could not get table row identifier")
 	}
