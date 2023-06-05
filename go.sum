@@ -336,5 +336,5 @@ inet.af/netaddr v0.0.0-20220811202034-502d2d690317 h1:U2fwK6P2EqmopP/hFLTOAjWTki
 inet.af/netaddr v0.0.0-20220811202034-502d2d690317/go.mod h1:OIezDfdzOgFhuw4HuWapWq2e9l0H9tK4F1j+ETRtF3k=
 k8s.io/apimachinery v0.26.1 h1:8EZ/eGJL+hY/MYCNwhmDzVqq2lPl3N3Bo8rvweJwXUQ=
 k8s.io/apimachinery v0.26.1/go.mod h1:tnPmbONNJ7ByJNz9+n9kMjNP8ON+1qoAIIC70lztu74=
-vitess.io/vitess v0.16.1 h1:4jyOxT+FOIZiqBIyfxuXmMlV8AZt/FeJwr/bwyqbQuA=
-vitess.io/vitess v0.16.1/go.mod h1:Ennjgg9bMpYbSKqh7TSQJFZdFKtUUUXO0QW8qcjxkBQ=
+vitess.io/vitess v0.16.2 h1:vu6xCrM2GpQuX03Nwhb20P8xAh9jCIJy0FESkr3Ohjw=
+vitess.io/vitess v0.16.2/go.mod h1:Ennjgg9bMpYbSKqh7TSQJFZdFKtUUUXO0QW8qcjxkBQ=
