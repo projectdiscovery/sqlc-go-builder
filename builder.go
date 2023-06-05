@@ -56,6 +56,17 @@ func (b *Builder) Where(query string, args ...interface{}) *Builder {
 	return b
 }
 
+// Perform tuple based comparision like ("a", "b") > (@value_of_a, @value_of_b)
+func (b *Builder) WhereCompare(column string, operator string, args ...interface{}) *Builder {
+	placeholders := make([]string, len(args))
+	for i := range args {
+		placeholders[i] = "?"
+	}
+
+	query := fmt.Sprintf("%s %s %s", column, operator, strings.Join(placeholders, ","))
+	return b.whereWithPlaceholders(query, args, placeholders)
+}
+
 func (b *Builder) whereWithPlaceholders(query string, args []interface{}, placeholders []string) *Builder {
 	b.filters = append(b.filters, filter{
 		expression:   query,
