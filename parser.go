@@ -95,7 +95,6 @@ func (b *Builder) modifySelectStatement(stmt *sqlparser.Select, previousIndex in
 	}
 	var filterErr error
 	var args []interface{}
-mainLoop:
 	for i, filter := range b.filters {
 		filter := filter
 
@@ -109,26 +108,19 @@ mainLoop:
 			args = append(args, filter.args...)
 			continue
 		}
-		switch v := stmt.Where.Expr.(type) {
-		case *sqlparser.ComparisonExpr:
-			stmt.Where.Expr = &sqlparser.AndExpr{
-				Left:  v,
+		var whereExpr sqlparser.Expr
+		if filter.condition == FilterConditionAnd {
+			whereExpr = &sqlparser.AndExpr{
+				Left:  stmt.Where.Expr,
 				Right: comparison,
 			}
-		case *sqlparser.AndExpr:
-			stmt.Where.Expr = &sqlparser.AndExpr{
-				Left:  v,
+		} else {
+			whereExpr = &sqlparser.OrExpr{
+				Left:  stmt.Where.Expr,
 				Right: comparison,
 			}
-		case *sqlparser.OrExpr:
-			stmt.Where.Expr = &sqlparser.AndExpr{
-				Left:  v,
-				Right: comparison,
-			}
-		default:
-			filterErr = errors.Errorf("unsupported where expression: %T", stmt.Where.Expr)
-			break mainLoop
 		}
+		stmt.Where.Expr = whereExpr
 		args = append(args, filter.args...)
 	}
 	if filterErr != nil {

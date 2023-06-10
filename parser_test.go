@@ -69,6 +69,15 @@ func TestBuilder(t *testing.T) {
 			wantQuery: "select * from users where `name` = ? and age in (?, ?, ?) order by `name` asc, age desc limit 10, 5",
 			wantArgs:  []interface{}{"John", 25, 30, 35},
 		},
+		{
+			name: "Valid OR Where",
+			setup: func(b *Builder) {
+				b.WhereCondition("name = ?", FilterConditionOr, "John")
+			},
+			baseQuery: "SELECT * FROM users WHERE age > 18",
+			wantQuery: "select * from users where age > 18 or `name` = ?",
+			wantArgs:  []interface{}{"John"},
+		},
 	}
 
 	for _, tt := range tests {
