@@ -26,7 +26,15 @@ type (
 		expression   string
 		args         []interface{}
 		placeholders []string
+		condition    FilterCondition
 	}
+)
+
+type FilterCondition int
+
+const (
+	FilterConditionAnd FilterCondition = iota
+	FilterConditionOr
 )
 
 // New creates a new Builder.
@@ -51,6 +59,17 @@ func (b *Builder) Where(query string, args ...interface{}) *Builder {
 	b.filters = append(b.filters, filter{
 		expression: query,
 		args:       args,
+	})
+
+	return b
+}
+
+// WhereCondition set conditions of where in SELECT with specified AND or OR
+func (b *Builder) WhereCondition(query string, condition FilterCondition, args ...interface{}) *Builder {
+	b.filters = append(b.filters, filter{
+		expression: query,
+		args:       args,
+		condition:  condition,
 	})
 
 	return b
