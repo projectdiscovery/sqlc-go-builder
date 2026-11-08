@@ -16,9 +16,19 @@ var defaultRowCount = 100
 // question mark.
 var replaceVitessRegex = regexp.MustCompile(`:v\d+`)
 
+// sqlParser uses the vitess defaults. New fails only on an invalid MySQL
+// version, and empty Options select the default version.
+var sqlParser = func() *sqlparser.Parser {
+	p, err := sqlparser.New(sqlparser.Options{})
+	if err != nil {
+		panic(err)
+	}
+	return p
+}()
+
 // Build generates a query and args from the builder.
 func (b *Builder) Build(query string, args ...interface{}) (string, []interface{}, error) {
-	stmt, err := sqlparser.Parse(query)
+	stmt, err := sqlParser.Parse(query)
 	if err != nil {
 		return "", nil, errors.Wrap(err, "could not parse sql")
 	}
@@ -91,7 +101,7 @@ func (b *Builder) modifySelectStatement(stmt *sqlparser.Select, previousIndex in
 		}
 	}
 	if b.group != nil {
-		stmt.GroupBy = *b.group
+		stmt.GroupBy = b.group
 	}
 	var filterErr error
 	var args []interface{}
@@ -223,7 +233,7 @@ func extractWhereStatement(whereStr string, i int, placeholders []string) (*sqlp
 	if !strings.Contains(key, "(") {
 		leftStmt, err = getTableRowIdentifier(key)
 	} else {
-		leftStmt, err = sqlparser.ParseExpr(key)
+		leftStmt, err = sqlParser.ParseExpr(key)
 	}
 
 	if err != nil {
@@ -263,7 +273,7 @@ func getTableRowIdentifier(key string) (sqlparser.Expr, error) {
 	return leftStmt, nil
 }
 
-func buildPositionalArgument(i int) sqlparser.Argument {
+func buildPositionalArgument(i int) *sqlparser.Argument {
 	var builder strings.Builder
 	builder.WriteRune('v')
 	builder.WriteString(strconv.Itoa(i))
