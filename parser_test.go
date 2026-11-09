@@ -57,6 +57,23 @@ func TestBuilder(t *testing.T) {
 			wantQuery: "select * from users limit 0, 5",
 		},
 		{
+			name: "Valid Group",
+			setup: func(b *Builder) {
+				b.Group("name, age")
+			},
+			baseQuery: "SELECT * FROM users",
+			wantQuery: "select * from users group by `name`, age",
+		},
+		{
+			name: "Valid Group and Where",
+			setup: func(b *Builder) {
+				b.Group("name").Where("age = ?", 3)
+			},
+			baseQuery: "SELECT name FROM users",
+			wantQuery: "select `name` from users where age = ? group by `name`",
+			wantArgs:  []interface{}{3},
+		},
+		{
 			name: "Valid Where, In, Order, Offset, Limit",
 			setup: func(b *Builder) {
 				b.Where("name = ?", "John").

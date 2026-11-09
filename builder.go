@@ -141,7 +141,7 @@ func (b *Builder) Group(cols string) *Builder {
 			fmt.Printf("could not get table row identifier %s: %s", cols, err)
 			return b
 		}
-		groups = append(groups, colIdent)
+		groups.Exprs = append(groups.Exprs, colIdent)
 	}
 	b.group = &groups
 	return b

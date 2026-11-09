@@ -7,7 +7,11 @@ import (
 
 func main() {
 	query := "select id from user_items WHERE user_items.name=?"
-	stmt, err := sqlparser.Parse(query)
+	parser, err := sqlparser.New(sqlparser.Options{})
+	if err != nil {
+		panic(err)
+	}
+	stmt, err := parser.Parse(query)
 	if err != nil {
 		panic(err)
 	}
